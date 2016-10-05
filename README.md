@@ -4,7 +4,7 @@
 [![Gem Version](https://badge.fury.io/rb/philiprehberger-graph.svg)](https://rubygems.org/gems/philiprehberger-graph)
 [![License](https://img.shields.io/github/license/philiprehberger/rb-graph)](LICENSE)
 
-Directed and undirected graph with traversal, shortest path, and topological sort.
+Directed and undirected graph with traversal, shortest path, and topological sort
 
 ## Requirements
 

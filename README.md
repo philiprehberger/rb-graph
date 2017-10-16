@@ -3,6 +3,7 @@
 [![Tests](https://github.com/philiprehberger/rb-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/rb-graph/actions/workflows/ci.yml)
 [![Gem Version](https://badge.fury.io/rb/philiprehberger-graph.svg)](https://rubygems.org/gems/philiprehberger-graph)
 [![License](https://img.shields.io/github/license/philiprehberger/rb-graph)](LICENSE)
+[![Sponsor](https://img.shields.io/badge/sponsor-GitHub%20Sponsors-ec6cb9)](https://github.com/sponsors/philiprehberger)
 
 Directed and undirected graph with traversal, shortest path, and topological sort
 
@@ -106,4 +107,4 @@ bundle exec rubocop
 
 ## License
 
-MIT
+[MIT](LICENSE)

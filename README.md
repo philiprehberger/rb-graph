@@ -1,11 +1,8 @@
 # philiprehberger-graph
 
-[![Tests](https://github.com/philiprehberger/rb-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/rb-graph/actions/workflows/ci.yml)
-[![Gem Version](https://badge.fury.io/rb/philiprehberger-graph.svg)](https://rubygems.org/gems/philiprehberger-graph)
-[![License](https://img.shields.io/github/license/philiprehberger/rb-graph)](LICENSE)
-[![Sponsor](https://img.shields.io/badge/sponsor-GitHub%20Sponsors-ec6cb9)](https://github.com/sponsors/philiprehberger)
+[![Tests](https://github.com/philiprehberger/rb-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/rb-graph/actions/workflows/ci.yml) [![Gem Version](https://img.shields.io/gem/v/philiprehberger-graph)](https://rubygems.org/gems/philiprehberger-graph) [![GitHub release](https://img.shields.io/github/v/release/philiprehberger/rb-graph)](https://github.com/philiprehberger/rb-graph/releases) [![GitHub last commit](https://img.shields.io/github/last-commit/philiprehberger/rb-graph)](https://github.com/philiprehberger/rb-graph/commits/main) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Bug Reports](https://img.shields.io/badge/bug-reports-red.svg)](https://github.com/philiprehberger/rb-graph/issues) [![Feature Requests](https://img.shields.io/badge/feature-requests-blue.svg)](https://github.com/philiprehberger/rb-graph/issues) [![GitHub Sponsors](https://img.shields.io/badge/sponsor-philiprehberger-ea4aaa.svg?logo=github)](https://github.com/sponsors/philiprehberger)
 
-Directed and undirected graph with traversal, shortest path, and topological sort
+Directed and undirected graph data structure with traversal, shortest path, MST, max flow, coloring, and serialization
 
 ## Requirements
 
@@ -77,6 +74,84 @@ g.add_edge(:c, :d)
 g.connected_components  # => [[:a, :b], [:c, :d]]
 ```
 
+### Minimum Spanning Tree
+
+```ruby
+g = Philiprehberger::Graph.new
+g.add_edge(:a, :b, weight: 4)
+g.add_edge(:a, :c, weight: 2)
+g.add_edge(:b, :c, weight: 1)
+g.add_edge(:b, :d, weight: 5)
+
+g.minimum_spanning_tree(algorithm: :kruskal)
+# => [{from: :b, to: :c, weight: 1}, {from: :a, to: :c, weight: 2}, {from: :b, to: :d, weight: 5}]
+g.minimum_spanning_tree(algorithm: :prim)
+```
+
+### Maximum Flow
+
+```ruby
+g = Philiprehberger::Graph.new(directed: true)
+g.add_edge(:s, :a, weight: 10)
+g.add_edge(:s, :b, weight: 5)
+g.add_edge(:a, :t, weight: 5)
+g.add_edge(:b, :t, weight: 10)
+g.add_edge(:a, :b, weight: 15)
+
+g.max_flow(:s, :t)  # => 15
+```
+
+### Graph Coloring
+
+```ruby
+g = Philiprehberger::Graph.new
+g.add_edge(:a, :b)
+g.add_edge(:b, :c)
+g.add_edge(:c, :a)
+
+g.coloring                  # => {:a=>0, :b=>1, :c=>2}
+g.chromatic_number_estimate # => 3
+```
+
+### Bipartiteness
+
+```ruby
+g = Philiprehberger::Graph.new
+g.add_edge(:a, :b)
+g.add_edge(:b, :c)
+
+g.bipartite?      # => true
+g.bipartite_sets  # => [#<Set: {:a, :c}>, #<Set: {:b}>]
+```
+
+### Strongly Connected Components
+
+```ruby
+g = Philiprehberger::Graph.new(directed: true)
+g.add_edge(:a, :b)
+g.add_edge(:b, :a)
+g.add_edge(:b, :c)
+g.add_edge(:c, :d)
+g.add_edge(:d, :c)
+
+g.strongly_connected_components  # => [[:d, :c], [:b, :a]]
+```
+
+### Serialization
+
+```ruby
+g = Philiprehberger::Graph.new
+g.add_edge(:a, :b, weight: 3)
+
+g.to_dot
+# => "graph G {\n  a;\n  b;\n  a -- b [weight=3];\n}"
+
+g.to_json
+# => '{"directed":false,"nodes":["a","b"],"edges":[{"from":"a","to":"b","weight":3}]}'
+
+g2 = Philiprehberger::Graph::Graph.from_json(g.to_json)
+```
+
 ## API
 
 | Method | Description |
@@ -96,6 +171,16 @@ g.connected_components  # => [[:a, :b], [:c, :d]]
 | `#topological_sort` | Topological ordering (DAG only) |
 | `#cycle?` | Check for cycles |
 | `#connected_components` | Find connected components |
+| `#minimum_spanning_tree(algorithm:)` | Kruskal's or Prim's MST |
+| `#max_flow(source, sink)` | Edmonds-Karp maximum flow |
+| `#coloring` | Greedy graph coloring |
+| `#chromatic_number_estimate` | Estimated chromatic number |
+| `#bipartite?` | Check if graph is bipartite |
+| `#bipartite_sets` | Get bipartite partition sets |
+| `#strongly_connected_components` | Tarjan's SCC algorithm |
+| `#to_dot` | Serialize to DOT format |
+| `#to_json` | Serialize to JSON |
+| `.from_json(str)` | Deserialize from JSON |
 
 ## Development
 
@@ -104,6 +189,10 @@ bundle install
 bundle exec rspec
 bundle exec rubocop
 ```
+
+## Support
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Philip%20Rehberger-blue?logo=linkedin)](https://linkedin.com/in/philiprehberger) [![More Packages](https://img.shields.io/badge/more-packages-blue.svg)](https://github.com/philiprehberger?tab=repositories)
 
 ## License
 

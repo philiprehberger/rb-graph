@@ -15,7 +15,7 @@ module Philiprehberger
     # @param directed [Boolean] whether the graph is directed
     # @return [Graph] a new graph instance
     def self.new(directed: false)
-      Graph.new(directed: directed)
+      Philiprehberger::Graph::Graph.new(directed: directed)
     end
   end
 end

@@ -11,7 +11,8 @@ Gem::Specification.new do |spec|
   spec.summary = 'Directed and undirected graph data structure with traversal, shortest path, MST, max flow, coloring, and serialization'
   spec.description = 'Graph data structure supporting directed and undirected modes with adjacency list storage. ' \
                      'Includes BFS, DFS, Dijkstra shortest path, topological sort, cycle detection, ' \
-                     'and connected component discovery.'
+                     'connected components, minimum spanning tree, maximum flow, graph coloring, ' \
+                     'bipartiteness checking, strongly connected components, and DOT/JSON serialization.'
   spec.homepage = 'https://philiprehberger.com/open-source-packages/ruby/philiprehberger-graph'
   spec.license = 'MIT'
 

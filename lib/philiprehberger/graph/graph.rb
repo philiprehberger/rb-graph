@@ -79,11 +79,89 @@ module Philiprehberger
         (@adjacency[node] || []).length
       end
 
+      # Return the in-degree of a node (directed graphs).
+      # For undirected graphs, returns the same as degree.
+      #
+      # @param node [Object] the node
+      # @return [Integer]
+      def in_degree(node)
+        return degree(node) unless @directed
+
+        count = 0
+        @adjacency.each_value do |edges_list|
+          edges_list.each { |e| count += 1 if e[:node] == node }
+        end
+        count
+      end
+
+      # Return the out-degree of a node (directed graphs).
+      # For undirected graphs, returns the same as degree.
+      #
+      # @param node [Object] the node
+      # @return [Integer]
+      def out_degree(node)
+        return degree(node) unless @directed
+
+        (@adjacency[node] || []).length
+      end
+
+      # Check if a node exists.
+      #
+      # @param id [Object] the node identifier
+      # @return [Boolean]
+      def node?(id)
+        @adjacency.key?(id)
+      end
+
+      # Check if an edge exists between two nodes.
+      #
+      # @param from [Object] source node
+      # @param to [Object] destination node
+      # @return [Boolean]
+      def edge?(from, to)
+        return false unless @adjacency.key?(from)
+
+        @adjacency[from].any? { |e| e[:node] == to }
+      end
+
+      # Get the weight of an edge.
+      #
+      # @param from [Object] source node
+      # @param to [Object] destination node
+      # @return [Numeric, nil] the edge weight, or nil if no edge exists
+      def weight(from, to)
+        return nil unless @adjacency.key?(from)
+
+        edge = @adjacency[from].find { |e| e[:node] == to }
+        edge&.dig(:weight)
+      end
+
       # Return all node ids.
       #
       # @return [Array<Object>]
       def nodes
         @adjacency.keys
+      end
+
+      # Return the number of nodes.
+      #
+      # @return [Integer]
+      def node_count
+        @adjacency.length
+      end
+
+      # Return the number of edges.
+      #
+      # @return [Integer]
+      def edge_count
+        edges.length
+      end
+
+      # Whether the graph has no nodes.
+      #
+      # @return [Boolean]
+      def empty?
+        @adjacency.empty?
       end
 
       # Return all edges as [from, to, weight] tuples.
@@ -203,6 +281,88 @@ module Philiprehberger
         else
           undirected_cycle?
         end
+      end
+
+      # Check if a path exists between two nodes using BFS.
+      #
+      # @param from [Object] source node
+      # @param to [Object] destination node
+      # @return [Boolean]
+      def path?(from, to)
+        return false unless @adjacency.key?(from) && @adjacency.key?(to)
+        return true if from == to
+
+        visited = { from => true }
+        queue = [from]
+
+        until queue.empty?
+          node = queue.shift
+          neighbors(node).each do |neighbor|
+            return true if neighbor == to
+
+            unless visited[neighbor]
+              visited[neighbor] = true
+              queue << neighbor
+            end
+          end
+        end
+
+        false
+      end
+
+      # Extract a subgraph containing only the specified nodes and edges between them.
+      #
+      # @param node_ids [Array<Object>] the nodes to include
+      # @return [Graph] a new graph
+      def subgraph(node_ids)
+        node_set = node_ids.is_a?(Set) ? node_ids : Set.new(node_ids)
+        g = self.class.new(directed: @directed)
+
+        node_set.each { |id| g.add_node(id) if @adjacency.key?(id) }
+
+        @adjacency.each do |from, edges_list|
+          next unless node_set.include?(from)
+
+          edges_list.each do |edge|
+            next unless node_set.include?(edge[:node])
+            next if !@directed && from.to_s > edge[:node].to_s
+
+            g.add_edge(from, edge[:node], weight: edge[:weight])
+          end
+        end
+
+        g
+      end
+
+      # Return a new graph with all edges reversed.
+      # Only works on directed graphs.
+      #
+      # @return [Graph] a new graph with reversed edges
+      # @raise [Error] if the graph is not directed
+      def transpose
+        raise Error, 'transpose requires a directed graph' unless @directed
+
+        g = self.class.new(directed: true)
+        @adjacency.each_key { |id| g.add_node(id) }
+        @adjacency.each do |from, edges_list|
+          edges_list.each do |edge|
+            g.add_edge(edge[:node], from, weight: edge[:weight])
+          end
+        end
+        g
+      end
+
+      # Calculate the density of the graph.
+      # Density is the ratio of actual edges to possible edges.
+      #
+      # @return [Float] density between 0.0 and 1.0
+      def density
+        n = @adjacency.length
+        return 0.0 if n < 2
+
+        m = edge_count.to_f
+        max_edges = @directed ? n * (n - 1) : n * (n - 1) / 2.0
+        m / max_edges
       end
 
       # Find connected components (undirected) or weakly connected components (directed).

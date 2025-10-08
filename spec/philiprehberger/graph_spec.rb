@@ -1345,4 +1345,328 @@ RSpec.describe Philiprehberger::Graph do
       expect(g2.edges).to eq([])
     end
   end
+
+  describe '#node?' do
+    it 'returns true for existing nodes' do
+      g = described_class.new
+      g.add_node(:a)
+      expect(g.node?(:a)).to be true
+    end
+
+    it 'returns false for non-existing nodes' do
+      g = described_class.new
+      expect(g.node?(:z)).to be false
+    end
+
+    it 'detects nodes added via add_edge' do
+      g = described_class.new
+      g.add_edge(:a, :b)
+      expect(g.node?(:a)).to be true
+      expect(g.node?(:b)).to be true
+    end
+  end
+
+  describe '#edge?' do
+    it 'returns true for existing edges' do
+      g = described_class.new
+      g.add_edge(:a, :b)
+      expect(g.edge?(:a, :b)).to be true
+    end
+
+    it 'returns true in both directions for undirected' do
+      g = described_class.new
+      g.add_edge(:a, :b)
+      expect(g.edge?(:b, :a)).to be true
+    end
+
+    it 'returns false for non-existing edges' do
+      g = described_class.new
+      g.add_node(:a)
+      g.add_node(:b)
+      expect(g.edge?(:a, :b)).to be false
+    end
+
+    it 'respects direction in directed graphs' do
+      g = described_class.new(directed: true)
+      g.add_edge(:a, :b)
+      expect(g.edge?(:a, :b)).to be true
+      expect(g.edge?(:b, :a)).to be false
+    end
+
+    it 'returns false for unknown nodes' do
+      g = described_class.new
+      expect(g.edge?(:x, :y)).to be false
+    end
+  end
+
+  describe '#weight' do
+    it 'returns the weight of an edge' do
+      g = described_class.new
+      g.add_edge(:a, :b, weight: 5)
+      expect(g.weight(:a, :b)).to eq(5)
+    end
+
+    it 'returns default weight of 1' do
+      g = described_class.new
+      g.add_edge(:a, :b)
+      expect(g.weight(:a, :b)).to eq(1)
+    end
+
+    it 'returns nil for non-existing edge' do
+      g = described_class.new
+      g.add_node(:a)
+      expect(g.weight(:a, :b)).to be_nil
+    end
+
+    it 'returns nil for unknown node' do
+      g = described_class.new
+      expect(g.weight(:x, :y)).to be_nil
+    end
+  end
+
+  describe '#node_count' do
+    it 'returns the number of nodes' do
+      g = described_class.new
+      g.add_edge(:a, :b)
+      g.add_node(:c)
+      expect(g.node_count).to eq(3)
+    end
+
+    it 'returns 0 for empty graph' do
+      g = described_class.new
+      expect(g.node_count).to eq(0)
+    end
+  end
+
+  describe '#edge_count' do
+    it 'counts edges in undirected graph' do
+      g = described_class.new
+      g.add_edge(:a, :b)
+      g.add_edge(:b, :c)
+      expect(g.edge_count).to eq(2)
+    end
+
+    it 'counts edges in directed graph' do
+      g = described_class.new(directed: true)
+      g.add_edge(:a, :b)
+      g.add_edge(:b, :a)
+      expect(g.edge_count).to eq(2)
+    end
+
+    it 'returns 0 for empty graph' do
+      g = described_class.new
+      expect(g.edge_count).to eq(0)
+    end
+  end
+
+  describe '#empty?' do
+    it 'returns true for empty graph' do
+      g = described_class.new
+      expect(g.empty?).to be true
+    end
+
+    it 'returns false for non-empty graph' do
+      g = described_class.new
+      g.add_node(:a)
+      expect(g.empty?).to be false
+    end
+  end
+
+  describe '#in_degree' do
+    it 'counts incoming edges in directed graph' do
+      g = described_class.new(directed: true)
+      g.add_edge(:a, :c)
+      g.add_edge(:b, :c)
+      g.add_edge(:c, :d)
+      expect(g.in_degree(:c)).to eq(2)
+      expect(g.in_degree(:a)).to eq(0)
+    end
+
+    it 'falls back to degree for undirected graph' do
+      g = described_class.new
+      g.add_edge(:a, :b)
+      g.add_edge(:a, :c)
+      expect(g.in_degree(:a)).to eq(g.degree(:a))
+    end
+  end
+
+  describe '#out_degree' do
+    it 'counts outgoing edges in directed graph' do
+      g = described_class.new(directed: true)
+      g.add_edge(:a, :b)
+      g.add_edge(:a, :c)
+      g.add_edge(:b, :c)
+      expect(g.out_degree(:a)).to eq(2)
+      expect(g.out_degree(:c)).to eq(0)
+    end
+
+    it 'falls back to degree for undirected graph' do
+      g = described_class.new
+      g.add_edge(:a, :b)
+      g.add_edge(:a, :c)
+      expect(g.out_degree(:a)).to eq(g.degree(:a))
+    end
+  end
+
+  describe '#path?' do
+    it 'returns true when a path exists' do
+      g = described_class.new
+      g.add_edge(:a, :b)
+      g.add_edge(:b, :c)
+      expect(g.path?(:a, :c)).to be true
+    end
+
+    it 'returns false when no path exists' do
+      g = described_class.new
+      g.add_node(:a)
+      g.add_node(:b)
+      expect(g.path?(:a, :b)).to be false
+    end
+
+    it 'returns true for same node' do
+      g = described_class.new
+      g.add_node(:a)
+      expect(g.path?(:a, :a)).to be true
+    end
+
+    it 'returns false for unknown nodes' do
+      g = described_class.new
+      expect(g.path?(:x, :y)).to be false
+    end
+
+    it 'respects direction in directed graphs' do
+      g = described_class.new(directed: true)
+      g.add_edge(:a, :b)
+      g.add_edge(:b, :c)
+      expect(g.path?(:a, :c)).to be true
+      expect(g.path?(:c, :a)).to be false
+    end
+  end
+
+  describe '#subgraph' do
+    it 'extracts a subgraph with selected nodes' do
+      g = described_class.new
+      g.add_edge(:a, :b)
+      g.add_edge(:b, :c)
+      g.add_edge(:c, :d)
+
+      sg = g.subgraph(%i[a b c])
+      expect(sg.nodes).to contain_exactly(:a, :b, :c)
+      expect(sg.edge?(:a, :b)).to be true
+      expect(sg.edge?(:b, :c)).to be true
+      expect(sg.node?(:d)).to be false
+    end
+
+    it 'excludes edges to nodes not in the subgraph' do
+      g = described_class.new
+      g.add_edge(:a, :b)
+      g.add_edge(:a, :c)
+
+      sg = g.subgraph(%i[a b])
+      expect(sg.edge?(:a, :b)).to be true
+      expect(sg.node?(:c)).to be false
+    end
+
+    it 'preserves edge weights' do
+      g = described_class.new
+      g.add_edge(:a, :b, weight: 7)
+
+      sg = g.subgraph(%i[a b])
+      expect(sg.weight(:a, :b)).to eq(7)
+    end
+
+    it 'works with directed graphs' do
+      g = described_class.new(directed: true)
+      g.add_edge(:a, :b)
+      g.add_edge(:b, :c)
+
+      sg = g.subgraph(%i[a b])
+      expect(sg.directed?).to be true
+      expect(sg.edge?(:a, :b)).to be true
+      expect(sg.node?(:c)).to be false
+    end
+
+    it 'ignores nodes not in the original graph' do
+      g = described_class.new
+      g.add_node(:a)
+
+      sg = g.subgraph(%i[a z])
+      expect(sg.nodes).to contain_exactly(:a)
+    end
+  end
+
+  describe '#transpose' do
+    it 'reverses all edges' do
+      g = described_class.new(directed: true)
+      g.add_edge(:a, :b)
+      g.add_edge(:b, :c)
+
+      t = g.transpose
+      expect(t.edge?(:b, :a)).to be true
+      expect(t.edge?(:c, :b)).to be true
+      expect(t.edge?(:a, :b)).to be false
+    end
+
+    it 'preserves all nodes' do
+      g = described_class.new(directed: true)
+      g.add_node(:solo)
+      g.add_edge(:a, :b)
+
+      t = g.transpose
+      expect(t.nodes).to contain_exactly(:solo, :a, :b)
+    end
+
+    it 'preserves edge weights' do
+      g = described_class.new(directed: true)
+      g.add_edge(:a, :b, weight: 5)
+
+      t = g.transpose
+      expect(t.weight(:b, :a)).to eq(5)
+    end
+
+    it 'raises error for undirected graphs' do
+      g = described_class.new
+      expect { g.transpose }.to raise_error(Philiprehberger::Graph::Error)
+    end
+  end
+
+  describe '#density' do
+    it 'returns 1.0 for a complete undirected graph' do
+      g = described_class.new
+      g.add_edge(:a, :b)
+      g.add_edge(:a, :c)
+      g.add_edge(:b, :c)
+      expect(g.density).to eq(1.0)
+    end
+
+    it 'returns 1.0 for a complete directed graph' do
+      g = described_class.new(directed: true)
+      g.add_edge(:a, :b)
+      g.add_edge(:b, :a)
+      g.add_edge(:a, :c)
+      g.add_edge(:c, :a)
+      g.add_edge(:b, :c)
+      g.add_edge(:c, :b)
+      expect(g.density).to eq(1.0)
+    end
+
+    it 'returns 0.0 for graph with fewer than 2 nodes' do
+      g = described_class.new
+      g.add_node(:a)
+      expect(g.density).to eq(0.0)
+    end
+
+    it 'returns 0.0 for empty graph' do
+      g = described_class.new
+      expect(g.density).to eq(0.0)
+    end
+
+    it 'returns correct partial density' do
+      g = described_class.new
+      g.add_edge(:a, :b)
+      g.add_node(:c)
+      # 1 edge out of 3 possible = 1/3
+      expect(g.density).to be_within(0.001).of(0.333)
+    end
+  end
 end

@@ -213,11 +213,11 @@ module Philiprehberger
         components = []
 
         @adjacency.each_key do |node|
-          unless visited[node]
-            component = []
-            cc_visit(node, visited, component)
-            components << component
-          end
+          next if visited[node]
+
+          component = []
+          cc_visit(node, visited, component)
+          components << component
         end
 
         components
@@ -282,9 +282,7 @@ module Philiprehberger
         visited = {}
 
         @adjacency.each_key do |node|
-          unless visited[node]
-            return true if undirected_cycle_visit(node, nil, visited)
-          end
+          return true if !visited[node] && undirected_cycle_visit(node, nil, visited)
         end
 
         false

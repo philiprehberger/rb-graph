@@ -223,6 +223,182 @@ module Philiprehberger
         components
       end
 
+      # Find the minimum spanning tree using Kruskal's or Prim's algorithm.
+      # Only works on undirected graphs.
+      #
+      # @param algorithm [Symbol] :kruskal or :prim
+      # @return [Array<Hash>] edges in the MST as {from:, to:, weight:} hashes
+      # @raise [Error] if the graph is directed or disconnected
+      def minimum_spanning_tree(algorithm: :kruskal)
+        raise Error, 'minimum spanning tree requires an undirected graph' if @directed
+        raise Error, 'graph is empty' if @adjacency.empty?
+
+        components = connected_components
+        raise Error, 'graph is disconnected' if components.length > 1
+
+        case algorithm
+        when :kruskal then kruskal_mst
+        when :prim then prim_mst
+        else raise Error, "unknown algorithm: #{algorithm}"
+        end
+      end
+
+      # Compute the maximum flow from source to sink using Edmonds-Karp (BFS-based Ford-Fulkerson).
+      # Only works on directed graphs.
+      #
+      # @param source [Object] source node
+      # @param sink [Object] sink node
+      # @return [Numeric] the maximum flow value
+      # @raise [Error] if the graph is not directed or nodes don't exist
+      def max_flow(source, sink)
+        raise Error, 'max_flow requires a directed graph' unless @directed
+        raise Error, 'source node not found' unless @adjacency.key?(source)
+        raise Error, 'sink node not found' unless @adjacency.key?(sink)
+        return 0 if source == sink
+
+        edmonds_karp(source, sink)
+      end
+
+      # Greedy graph coloring. Assigns the smallest available color (integer) to each node.
+      #
+      # @return [Hash] mapping of node => color (integer starting from 0)
+      def coloring
+        result = {}
+        @adjacency.each_key do |node|
+          used_colors = Set.new
+          neighbors(node).each do |neighbor|
+            used_colors << result[neighbor] if result.key?(neighbor)
+          end
+          color = 0
+          color += 1 while used_colors.include?(color)
+          result[node] = color
+        end
+        result
+      end
+
+      # Estimate the chromatic number using greedy coloring.
+      #
+      # @return [Integer] estimated chromatic number
+      def chromatic_number_estimate
+        return 0 if @adjacency.empty?
+
+        colors = coloring
+        (colors.values.max || 0) + 1
+      end
+
+      # Check whether the graph is bipartite.
+      #
+      # @return [Boolean]
+      def bipartite?
+        !bipartite_sets.nil?
+      end
+
+      # Find bipartite partition sets using BFS 2-coloring.
+      #
+      # @return [Array<Set, Set>, nil] two sets of nodes, or nil if not bipartite
+      def bipartite_sets
+        color = {}
+        set_a = Set.new
+        set_b = Set.new
+
+        @adjacency.each_key do |start|
+          next if color.key?(start)
+
+          color[start] = 0
+          set_a << start
+          queue = [start]
+
+          until queue.empty?
+            node = queue.shift
+            all_neighbors = bipartite_neighbors(node)
+            all_neighbors.each do |neighbor|
+              if color.key?(neighbor)
+                return nil if color[neighbor] == color[node]
+              else
+                color[neighbor] = 1 - color[node]
+                if color[neighbor].zero?
+                  set_a << neighbor
+                else
+                  set_b << neighbor
+                end
+                queue << neighbor
+              end
+            end
+          end
+        end
+
+        [set_a, set_b]
+      end
+
+      # Find strongly connected components using Tarjan's algorithm.
+      # Only works on directed graphs.
+      #
+      # @return [Array<Array<Object>>] arrays of node ids per SCC
+      # @raise [Error] if the graph is not directed
+      def strongly_connected_components
+        raise Error, 'strongly_connected_components requires a directed graph' unless @directed
+
+        tarjan_scc
+      end
+
+      # Serialize the graph to DOT format.
+      #
+      # @return [String] DOT format string
+      def to_dot
+        type = @directed ? 'digraph' : 'graph'
+        connector = @directed ? '->' : '--'
+        lines = ["#{type} G {"]
+
+        @adjacency.each_key do |node|
+          lines << "  #{dot_escape(node)};"
+        end
+
+        seen = {}
+        @adjacency.each do |from, edges_list|
+          edges_list.each do |edge|
+            key = @directed ? [from, edge[:node]] : [from, edge[:node]].sort
+            next if seen[key]
+
+            seen[key] = true
+            attrs = edge[:weight] == 1 ? '' : " [weight=#{edge[:weight]}]"
+            lines << "  #{dot_escape(from)} #{connector} #{dot_escape(edge[:node])}#{attrs};"
+          end
+        end
+
+        lines << '}'
+        lines.join("\n")
+      end
+
+      # Serialize the graph to JSON.
+      #
+      # @return [String] JSON string
+      def to_json(*_args)
+        require 'json'
+        data = {
+          directed: @directed,
+          nodes: @adjacency.keys,
+          edges: edges.map { |e| { from: e[:from], to: e[:to], weight: e[:weight] } }
+        }
+        JSON.generate(data)
+      end
+
+      # Deserialize a graph from JSON.
+      #
+      # @param json_str [String] JSON string
+      # @return [Graph] a new graph instance
+      def self.from_json(json_str)
+        require 'json'
+        data = JSON.parse(json_str, symbolize_names: true)
+        graph = new(directed: data[:directed])
+        (data[:nodes] || []).each { |n| graph.add_node(n.is_a?(String) ? n.to_sym : n) }
+        (data[:edges] || []).each do |e|
+          from = e[:from].is_a?(String) ? e[:from].to_sym : e[:from]
+          to = e[:to].is_a?(String) ? e[:to].to_sym : e[:to]
+          graph.add_edge(from, to, weight: e[:weight] || 1)
+        end
+        graph
+      end
+
       private
 
       def dfs_visit(node, visited, result)
@@ -315,6 +491,193 @@ module Philiprehberger
 
         all_neighbors.each do |neighbor|
           cc_visit(neighbor, visited, component) unless visited[neighbor]
+        end
+      end
+
+      # ── MST helpers ──
+
+      def kruskal_mst
+        all_edges = edges.sort_by { |e| e[:weight] }
+        parent = {}
+        rank = Hash.new(0)
+
+        @adjacency.each_key { |n| parent[n] = n }
+
+        mst = []
+        all_edges.each do |edge|
+          root_from = uf_find(parent, edge[:from])
+          root_to = uf_find(parent, edge[:to])
+          next if root_from == root_to
+
+          mst << edge
+          uf_union(parent, rank, root_from, root_to)
+          break if mst.length == @adjacency.length - 1
+        end
+
+        mst
+      end
+
+      def prim_mst
+        start = @adjacency.keys.first
+        in_mst = { start => true }
+        mst = []
+        candidate_edges = (@adjacency[start] || []).map { |e| { from: start, to: e[:node], weight: e[:weight] } }
+
+        until candidate_edges.empty? || mst.length == @adjacency.length - 1
+          candidate_edges.sort_by! { |e| e[:weight] }
+          idx = candidate_edges.index { |e| !in_mst[e[:to]] }
+          break if idx.nil?
+
+          edge = candidate_edges.delete_at(idx)
+          next if in_mst[edge[:to]]
+
+          in_mst[edge[:to]] = true
+          mst << edge
+          (@adjacency[edge[:to]] || []).each do |e|
+            candidate_edges << { from: edge[:to], to: e[:node], weight: e[:weight] } unless in_mst[e[:node]]
+          end
+        end
+
+        mst
+      end
+
+      def uf_find(parent, node)
+        parent[node] = uf_find(parent, parent[node]) while parent[node] != node
+        node
+      end
+
+      def uf_union(parent, rank, a, b)
+        if rank[a] < rank[b]
+          parent[a] = b
+        elsif rank[a] > rank[b]
+          parent[b] = a
+        else
+          parent[b] = a
+          rank[a] += 1
+        end
+      end
+
+      # ── Max flow helpers ──
+
+      def edmonds_karp(source, sink)
+        # Build residual capacity graph
+        capacity = Hash.new { |h, k| h[k] = Hash.new(0) }
+        @adjacency.each do |from, edges_list|
+          edges_list.each do |edge|
+            capacity[from][edge[:node]] += edge[:weight]
+          end
+        end
+
+        total_flow = 0
+        loop do
+          # BFS to find augmenting path
+          parent = { source => nil }
+          visited = { source => true }
+          queue = [source]
+
+          until queue.empty?
+            node = queue.shift
+            break if node == sink
+
+            capacity[node].each do |neighbor, cap|
+              next unless cap.positive? && !visited[neighbor]
+
+              visited[neighbor] = true
+              parent[neighbor] = node
+              queue << neighbor
+            end
+          end
+
+          break unless visited[sink]
+
+          # Find bottleneck
+          path_flow = Float::INFINITY
+          node = sink
+          while parent[node]
+            path_flow = [path_flow, capacity[parent[node]][node]].min
+            node = parent[node]
+          end
+
+          # Update residual capacities
+          node = sink
+          while parent[node]
+            capacity[parent[node]][node] -= path_flow
+            capacity[node][parent[node]] += path_flow
+            node = parent[node]
+          end
+
+          total_flow += path_flow
+        end
+
+        total_flow
+      end
+
+      # ── Bipartite helpers ──
+
+      def bipartite_neighbors(node)
+        result = Set.new
+        (@adjacency[node] || []).each { |e| result << e[:node] }
+        if @directed
+          @adjacency.each do |from, edges_list|
+            edges_list.each { |e| result << from if e[:node] == node }
+          end
+        end
+        result
+      end
+
+      # ── Tarjan's SCC ──
+
+      def tarjan_scc
+        index_counter = [0]
+        stack = []
+        on_stack = {}
+        index = {}
+        lowlink = {}
+        result = []
+
+        @adjacency.each_key do |node|
+          tarjan_visit(node, index_counter, stack, on_stack, index, lowlink, result) unless index.key?(node)
+        end
+
+        result
+      end
+
+      def tarjan_visit(node, index_counter, stack, on_stack, index, lowlink, result)
+        index[node] = index_counter[0]
+        lowlink[node] = index_counter[0]
+        index_counter[0] += 1
+        stack.push(node)
+        on_stack[node] = true
+
+        neighbors(node).each do |neighbor|
+          if !index.key?(neighbor)
+            tarjan_visit(neighbor, index_counter, stack, on_stack, index, lowlink, result)
+            lowlink[node] = [lowlink[node], lowlink[neighbor]].min
+          elsif on_stack[neighbor]
+            lowlink[node] = [lowlink[node], index[neighbor]].min
+          end
+        end
+
+        return unless lowlink[node] == index[node]
+
+        component = []
+        loop do
+          w = stack.pop
+          on_stack[w] = false
+          component << w
+          break if w == node
+        end
+        result << component
+      end
+
+      # ── DOT helpers ──
+
+      def dot_escape(value)
+        str = value.to_s
+        if str.match?(/\A[a-zA-Z_]\w*\z/)
+          str
+        else
+          "\"#{str.gsub('"', '\\"')}\""
         end
       end
     end

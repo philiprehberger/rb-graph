@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-03-28
+
+### Added
+
+- Minimum spanning tree with Kruskal's and Prim's algorithms (`minimum_spanning_tree`)
+- Maximum flow using Edmonds-Karp algorithm (`max_flow`)
+- Greedy graph coloring (`coloring`, `chromatic_number_estimate`)
+- Bipartiteness checking (`bipartite?`, `bipartite_sets`)
+- Strongly connected components via Tarjan's algorithm (`strongly_connected_components`)
+- Graph serialization to DOT and JSON formats (`to_dot`, `to_json`, `Graph.from_json`)
+
 ## [0.1.5] - 2026-03-26
 
 ### Changed

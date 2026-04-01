@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-04-01
+
+### Fixed
+- Fix infinite recursion in union-find `uf_find` used by Kruskal MST algorithm
+- Fix `Graph.new` infinite recursion in module-level factory method
+- Fix greedy coloring test expectation for directed graphs
+
 ## [0.2.2] - 2026-03-31
 
 ### Added

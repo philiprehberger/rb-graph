@@ -542,8 +542,17 @@ module Philiprehberger
       end
 
       def uf_find(parent, node)
-        parent[node] = uf_find(parent, parent[node]) while parent[node] != node
-        node
+        root = node
+        root = parent[root] while parent[root] != root
+
+        # Path compression
+        while parent[node] != root
+          next_node = parent[node]
+          parent[node] = root
+          node = next_node
+        end
+
+        root
       end
 
       def uf_union(parent, rank, a, b)

@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   spec.authors = ['Philip Rehberger']
   spec.email = ['me@philiprehberger.com']
 
-  spec.summary = 'Directed and undirected graph with traversal, shortest path, and topological sort'
+  spec.summary = 'Directed and undirected graph data structure with traversal, shortest path, MST, max flow, coloring, and serialization'
   spec.description = 'Graph data structure supporting directed and undirected modes with adjacency list storage. ' \
                      'Includes BFS, DFS, Dijkstra shortest path, topological sort, cycle detection, ' \
                      'and connected component discovery.'

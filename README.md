@@ -139,6 +139,63 @@ g.add_edge(:d, :c)
 g.strongly_connected_components  # => [[:d, :c], [:b, :a]]
 ```
 
+### Query Methods
+
+```ruby
+g = Philiprehberger::Graph.new
+g.add_edge(:a, :b, weight: 3)
+g.add_edge(:b, :c)
+g.add_node(:d)
+
+g.node?(:a)       # => true
+g.edge?(:a, :b)   # => true
+g.weight(:a, :b)  # => 3
+g.node_count       # => 4
+g.edge_count       # => 2
+g.empty?           # => false
+g.path?(:a, :c)   # => true
+g.path?(:a, :d)   # => false
+g.density          # => 0.333...
+```
+
+### Directed Degree
+
+```ruby
+g = Philiprehberger::Graph.new(directed: true)
+g.add_edge(:a, :b)
+g.add_edge(:a, :c)
+g.add_edge(:b, :c)
+
+g.in_degree(:c)   # => 2
+g.out_degree(:a)  # => 2
+```
+
+### Subgraph
+
+```ruby
+g = Philiprehberger::Graph.new
+g.add_edge(:a, :b)
+g.add_edge(:b, :c)
+g.add_edge(:c, :d)
+
+sg = g.subgraph([:a, :b, :c])
+sg.nodes  # => [:a, :b, :c]
+sg.edge?(:a, :b)  # => true
+sg.node?(:d)      # => false
+```
+
+### Transpose
+
+```ruby
+g = Philiprehberger::Graph.new(directed: true)
+g.add_edge(:a, :b)
+g.add_edge(:b, :c)
+
+t = g.transpose
+t.edge?(:b, :a)  # => true
+t.edge?(:c, :b)  # => true
+```
+
 ### Serialization
 
 ```ruby
@@ -163,10 +220,19 @@ g2 = Philiprehberger::Graph::Graph.from_json(g.to_json)
 | `#add_edge(from, to, weight:)` | Add a weighted edge |
 | `#remove_node(id)` | Remove a node and its edges |
 | `#remove_edge(from, to)` | Remove an edge |
+| `#node?(id)` | Check if a node exists |
+| `#edge?(from, to)` | Check if an edge exists |
+| `#weight(from, to)` | Get edge weight (nil if none) |
 | `#neighbors(node)` | Get neighbor node ids |
 | `#degree(node)` | Number of edges on a node |
+| `#in_degree(node)` | Incoming edges (directed) |
+| `#out_degree(node)` | Outgoing edges (directed) |
 | `#nodes` | All node ids |
 | `#edges` | All edges as hashes |
+| `#node_count` | Number of nodes |
+| `#edge_count` | Number of edges |
+| `#empty?` | Whether the graph has no nodes |
+| `#path?(from, to)` | Check if a path exists |
 | `#bfs(start)` | Breadth-first search |
 | `#dfs(start)` | Depth-first search |
 | `#shortest_path(from, to)` | Dijkstra's shortest path |
@@ -180,6 +246,9 @@ g2 = Philiprehberger::Graph::Graph.from_json(g.to_json)
 | `#bipartite?` | Check if graph is bipartite |
 | `#bipartite_sets` | Get bipartite partition sets |
 | `#strongly_connected_components` | Tarjan's SCC algorithm |
+| `#subgraph(nodes)` | Extract a subgraph |
+| `#transpose` | Reverse all edges (directed) |
+| `#density` | Graph density (0.0 to 1.0) |
 | `#to_dot` | Serialize to DOT format |
 | `#to_json` | Serialize to JSON |
 | `.from_json(str)` | Deserialize from JSON |

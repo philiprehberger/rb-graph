@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-10
+
+### Added
+- Node and edge existence checks (`node?`, `edge?`)
+- Edge weight retrieval (`weight`)
+- Graph size queries (`node_count`, `edge_count`, `empty?`)
+- Directed graph degree decomposition (`in_degree`, `out_degree`)
+- Path existence check (`path?`)
+- Subgraph extraction (`subgraph`)
+- Graph transpose (`transpose`)
+- Graph density calculation (`density`)
+
+### Changed
+- Update gemspec description to reflect full feature set
+- Add missing fields to GitHub issue templates
+
 ## [0.2.4] - 2026-04-08
 
 ### Changed

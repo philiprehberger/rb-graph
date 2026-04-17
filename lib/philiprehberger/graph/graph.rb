@@ -17,6 +17,26 @@ module Philiprehberger
         @directed
       end
 
+      # Iterate over all node ids.
+      #
+      # @yield [Object] each node id
+      # @return [Enumerator] if no block given
+      def each_node(&)
+        return enum_for(:each_node) unless block_given?
+
+        @adjacency.each_key(&)
+      end
+
+      # Iterate over all edges as {from:, to:, weight:} hashes.
+      #
+      # @yield [Hash] each edge
+      # @return [Enumerator] if no block given
+      def each_edge(&)
+        return enum_for(:each_edge) unless block_given?
+
+        edges.each(&)
+      end
+
       # Add a node to the graph.
       #
       # @param id [Object] the node identifier
@@ -254,6 +274,36 @@ module Philiprehberger
         nil
       end
 
+      # Find the shortest distance between two nodes using Dijkstra's algorithm.
+      #
+      # @param from [Object] source node
+      # @param to [Object] destination node
+      # @return [Numeric, nil] the shortest distance, or nil if no path exists
+      def shortest_path_distance(from, to)
+        return nil unless @adjacency.key?(from) && @adjacency.key?(to)
+        return 0 if from == to
+
+        distances = Hash.new(Float::INFINITY)
+        distances[from] = 0
+        unvisited = @adjacency.keys.dup
+
+        until unvisited.empty?
+          current = unvisited.min_by { |n| distances[n] }
+          break if distances[current] == Float::INFINITY
+
+          unvisited.delete(current)
+
+          return distances[to] if current == to
+
+          (@adjacency[current] || []).each do |edge|
+            alt = distances[current] + edge[:weight]
+            distances[edge[:node]] = alt if alt < distances[edge[:node]]
+          end
+        end
+
+        nil
+      end
+
       # Topological sort (directed acyclic graphs only).
       #
       # @return [Array<Object>] nodes in topological order
@@ -363,6 +413,29 @@ module Philiprehberger
         m = edge_count.to_f
         max_edges = @directed ? n * (n - 1) : n * (n - 1) / 2.0
         m / max_edges
+      end
+
+      # Return the complement graph.
+      # The complement contains edges between all pairs of nodes that are NOT connected
+      # in the original graph.
+      #
+      # @return [Graph] a new graph with complementary edges
+      def complement
+        g = self.class.new(directed: @directed)
+        @adjacency.each_key { |id| g.add_node(id) }
+
+        node_list = @adjacency.keys
+        node_list.each_with_index do |a, i|
+          targets = @directed ? node_list : node_list[(i + 1)..]
+          targets.each do |b|
+            next if a == b
+            next if edge?(a, b)
+
+            g.add_edge(a, b)
+          end
+        end
+
+        g
       end
 
       # Find connected components (undirected) or weakly connected components (directed).

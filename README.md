@@ -139,6 +139,44 @@ g.add_edge(:d, :c)
 g.strongly_connected_components  # => [[:d, :c], [:b, :a]]
 ```
 
+### Iteration
+
+```ruby
+g = Philiprehberger::Graph.new
+g.add_edge(:a, :b)
+g.add_edge(:a, :c)
+
+g.each_node { |id| puts id }
+g.each_edge { |e| puts "#{e[:from]} -> #{e[:to]}" }
+
+# Enumerator chaining
+high_degree = g.each_node.select { |id| g.degree(id) > 1 }
+heavy_edges = g.each_edge.select { |e| e[:weight] > 5 }
+```
+
+### Shortest Path Distance
+
+```ruby
+g = Philiprehberger::Graph.new
+g.add_edge(:a, :b, weight: 1)
+g.add_edge(:b, :c, weight: 2)
+g.add_edge(:a, :c, weight: 10)
+
+g.shortest_path_distance(:a, :c)  # => 3
+```
+
+### Graph Complement
+
+```ruby
+g = Philiprehberger::Graph.new
+g.add_edge(:a, :b)
+g.add_edge(:b, :c)
+
+c = g.complement
+c.edge?(:a, :c)  # => true
+c.edge?(:a, :b)  # => false
+```
+
 ### Query Methods
 
 ```ruby
@@ -232,10 +270,13 @@ g2 = Philiprehberger::Graph::Graph.from_json(g.to_json)
 | `#node_count` | Number of nodes |
 | `#edge_count` | Number of edges |
 | `#empty?` | Whether the graph has no nodes |
+| `#each_node` | Iterate nodes (yields or returns Enumerator) |
+| `#each_edge` | Iterate edges (yields or returns Enumerator) |
 | `#path?(from, to)` | Check if a path exists |
 | `#bfs(start)` | Breadth-first search |
 | `#dfs(start)` | Depth-first search |
 | `#shortest_path(from, to)` | Dijkstra's shortest path |
+| `#shortest_path_distance(from, to)` | Shortest distance (numeric) |
 | `#topological_sort` | Topological ordering (DAG only) |
 | `#cycle?` | Check for cycles |
 | `#connected_components` | Find connected components |
@@ -249,6 +290,7 @@ g2 = Philiprehberger::Graph::Graph.from_json(g.to_json)
 | `#subgraph(nodes)` | Extract a subgraph |
 | `#transpose` | Reverse all edges (directed) |
 | `#density` | Graph density (0.0 to 1.0) |
+| `#complement` | Graph complement (missing edges) |
 | `#to_dot` | Serialize to DOT format |
 | `#to_json` | Serialize to JSON |
 | `.from_json(str)` | Deserialize from JSON |

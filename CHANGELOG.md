@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-17
+
+### Added
+- Enumerator-style node iteration (`each_node`)
+- Enumerator-style edge iteration (`each_edge`)
+- Distance-only shortest path query (`shortest_path_distance`)
+- Graph complement operation (`complement`)
+
 ## [0.3.0] - 2026-04-10
 
 ### Added

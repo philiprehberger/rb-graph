@@ -1346,6 +1346,198 @@ RSpec.describe Philiprehberger::Graph do
     end
   end
 
+  # ── Enumerator Methods ──
+
+  describe '#each_node' do
+    it 'yields each node id' do
+      g = described_class.new
+      g.add_edge(:a, :b)
+      g.add_node(:c)
+      result = []
+      g.each_node { |id| result << id }
+      expect(result).to contain_exactly(:a, :b, :c)
+    end
+
+    it 'returns an Enumerator when no block given' do
+      g = described_class.new
+      g.add_node(:a)
+      expect(g.each_node).to be_a(Enumerator)
+    end
+
+    it 'supports Enumerator chaining' do
+      g = described_class.new
+      g.add_edge(:a, :b)
+      g.add_edge(:a, :c)
+      high_degree = g.each_node.select { |id| g.degree(id) > 1 }
+      expect(high_degree).to eq([:a])
+    end
+
+    it 'returns empty enumerator for empty graph' do
+      g = described_class.new
+      expect(g.each_node.to_a).to eq([])
+    end
+  end
+
+  describe '#each_edge' do
+    it 'yields each edge hash' do
+      g = described_class.new
+      g.add_edge(:a, :b, weight: 3)
+      g.add_edge(:b, :c, weight: 5)
+      result = []
+      g.each_edge { |e| result << e }
+      expect(result.length).to eq(2)
+      expect(result.first).to have_key(:from)
+      expect(result.first).to have_key(:to)
+      expect(result.first).to have_key(:weight)
+    end
+
+    it 'returns an Enumerator when no block given' do
+      g = described_class.new
+      expect(g.each_edge).to be_a(Enumerator)
+    end
+
+    it 'supports Enumerator chaining' do
+      g = described_class.new
+      g.add_edge(:a, :b, weight: 1)
+      g.add_edge(:b, :c, weight: 10)
+      heavy = g.each_edge.select { |e| e[:weight] > 5 }
+      expect(heavy.length).to eq(1)
+      expect(heavy.first[:weight]).to eq(10)
+    end
+
+    it 'returns empty enumerator for empty graph' do
+      g = described_class.new
+      expect(g.each_edge.to_a).to eq([])
+    end
+
+    it 'does not duplicate undirected edges' do
+      g = described_class.new
+      g.add_edge(:a, :b)
+      expect(g.each_edge.to_a.length).to eq(1)
+    end
+  end
+
+  # ── Shortest Path Distance ──
+
+  describe '#shortest_path_distance' do
+    it 'returns the shortest distance' do
+      g = described_class.new
+      g.add_edge(:a, :b, weight: 1)
+      g.add_edge(:b, :c, weight: 2)
+      g.add_edge(:a, :c, weight: 10)
+      expect(g.shortest_path_distance(:a, :c)).to eq(3)
+    end
+
+    it 'returns 0 for same source and destination' do
+      g = described_class.new
+      g.add_node(:a)
+      expect(g.shortest_path_distance(:a, :a)).to eq(0)
+    end
+
+    it 'returns nil when no path exists' do
+      g = described_class.new
+      g.add_node(:a)
+      g.add_node(:b)
+      expect(g.shortest_path_distance(:a, :b)).to be_nil
+    end
+
+    it 'returns nil for unknown nodes' do
+      g = described_class.new
+      expect(g.shortest_path_distance(:x, :y)).to be_nil
+    end
+
+    it 'works with directed graphs' do
+      g = described_class.new(directed: true)
+      g.add_edge(:a, :b, weight: 4)
+      g.add_edge(:a, :c, weight: 2)
+      g.add_edge(:c, :b, weight: 1)
+      expect(g.shortest_path_distance(:a, :b)).to eq(3)
+    end
+
+    it 'returns nil for unreachable directed node' do
+      g = described_class.new(directed: true)
+      g.add_edge(:a, :b)
+      expect(g.shortest_path_distance(:b, :a)).to be_nil
+    end
+  end
+
+  # ── Graph Complement ──
+
+  describe '#complement' do
+    it 'returns complement of undirected graph' do
+      g = described_class.new
+      g.add_edge(:a, :b)
+      g.add_edge(:b, :c)
+      c = g.complement
+      expect(c.edge?(:a, :c)).to be true
+      expect(c.edge?(:a, :b)).to be false
+      expect(c.edge?(:b, :c)).to be false
+    end
+
+    it 'returns complement of directed graph' do
+      g = described_class.new(directed: true)
+      g.add_edge(:a, :b)
+      g.add_edge(:b, :c)
+      c = g.complement
+      expect(c.edge?(:a, :c)).to be true
+      expect(c.edge?(:b, :a)).to be true
+      expect(c.edge?(:c, :a)).to be true
+      expect(c.edge?(:c, :b)).to be true
+      expect(c.edge?(:a, :b)).to be false
+      expect(c.edge?(:b, :c)).to be false
+    end
+
+    it 'preserves all nodes' do
+      g = described_class.new
+      g.add_node(:a)
+      g.add_node(:b)
+      g.add_node(:c)
+      c = g.complement
+      expect(c.nodes).to contain_exactly(:a, :b, :c)
+    end
+
+    it 'complement of complete graph has no edges' do
+      g = described_class.new
+      %i[a b c].combination(2) { |x, y| g.add_edge(x, y) }
+      c = g.complement
+      expect(c.edge_count).to eq(0)
+    end
+
+    it 'complement of empty-edge graph is complete' do
+      g = described_class.new
+      g.add_node(:a)
+      g.add_node(:b)
+      g.add_node(:c)
+      c = g.complement
+      expect(c.edge_count).to eq(3)
+    end
+
+    it 'double complement equals original edges' do
+      g = described_class.new
+      g.add_edge(:a, :b)
+      g.add_node(:c)
+      c2 = g.complement.complement
+      expect(c2.edge?(:a, :b)).to be true
+      expect(c2.edge?(:a, :c)).to be false
+      expect(c2.edge?(:b, :c)).to be false
+    end
+
+    it 'returns empty graph for single node' do
+      g = described_class.new
+      g.add_node(:a)
+      c = g.complement
+      expect(c.nodes).to eq([:a])
+      expect(c.edge_count).to eq(0)
+    end
+
+    it 'preserves graph directedness' do
+      g = described_class.new(directed: true)
+      g.add_node(:a)
+      c = g.complement
+      expect(c.directed?).to be true
+    end
+  end
+
   describe '#node?' do
     it 'returns true for existing nodes' do
       g = described_class.new

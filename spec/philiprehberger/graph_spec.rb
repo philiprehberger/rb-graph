@@ -1861,4 +1861,47 @@ RSpec.describe Philiprehberger::Graph do
       expect(g.density).to be_within(0.001).of(0.333)
     end
   end
+
+  describe '#total_weight' do
+    it 'returns 0 for an empty graph' do
+      g = described_class.new
+      expect(g.total_weight).to eq(0)
+    end
+
+    it 'returns 0 for a graph with no edges' do
+      g = described_class.new
+      g.add_node(:a)
+      g.add_node(:b)
+      expect(g.total_weight).to eq(0)
+    end
+
+    it 'equals edge_count when all edges use the default weight of 1' do
+      g = described_class.new
+      g.add_edge(:a, :b)
+      g.add_edge(:b, :c)
+      g.add_edge(:c, :d)
+      expect(g.total_weight).to eq(g.edge_count)
+    end
+
+    it 'sums custom edge weights correctly' do
+      g = described_class.new
+      g.add_edge(:a, :b, weight: 2)
+      g.add_edge(:b, :c, weight: 3)
+      g.add_edge(:c, :d, weight: 5)
+      expect(g.total_weight).to eq(10)
+    end
+
+    it 'counts each undirected edge only once' do
+      g = described_class.new
+      g.add_edge(:a, :b, weight: 4)
+      expect(g.total_weight).to eq(4)
+    end
+
+    it 'sums weights for directed graphs' do
+      g = described_class.new(directed: true)
+      g.add_edge(:a, :b, weight: 1)
+      g.add_edge(:b, :a, weight: 2)
+      expect(g.total_weight).to eq(3)
+    end
+  end
 end

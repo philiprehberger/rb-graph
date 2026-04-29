@@ -177,6 +177,17 @@ module Philiprehberger
         edges.length
       end
 
+      # Sum of weights across all edges. Returns 0 for an empty or edgeless graph.
+      #
+      # For undirected graphs each edge is counted once.
+      #
+      # @return [Numeric]
+      def total_weight
+        total = 0
+        each_edge { |edge| total += edge[:weight] }
+        total
+      end
+
       # Whether the graph has no nodes.
       #
       # @return [Boolean]

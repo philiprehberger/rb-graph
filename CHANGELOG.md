@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-04-29
+
+### Added
+- `Graph#total_weight` returning the sum of edge weights across all edges (cheap baseline for MST/flow comparisons)
+
 ## [0.4.0] - 2026-04-17
 
 ### Added

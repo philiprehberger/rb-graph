@@ -177,6 +177,16 @@ c.edge?(:a, :c)  # => true
 c.edge?(:a, :b)  # => false
 ```
 
+### Total Edge Weight
+
+```ruby
+g = Philiprehberger::Graph.new
+g.add_edge(:a, :b, weight: 3)
+g.add_edge(:b, :c, weight: 5)
+
+g.total_weight  # => 8
+```
+
 ### Query Methods
 
 ```ruby
@@ -269,6 +279,7 @@ g2 = Philiprehberger::Graph::Graph.from_json(g.to_json)
 | `#edges` | All edges as hashes |
 | `#node_count` | Number of nodes |
 | `#edge_count` | Number of edges |
+| `#total_weight` | Sum of edge weights across all edges |
 | `#empty?` | Whether the graph has no nodes |
 | `#each_node` | Iterate nodes (yields or returns Enumerator) |
 | `#each_edge` | Iterate edges (yields or returns Enumerator) |
